@@ -5,9 +5,25 @@ import yt_dlp
 
 from datetime import datetime, timedelta
 
+def searchFutureRot(showList):
+    print('All Upcoming Rotated Episodes Available on PBS Kids Player:')
+    for show in showList:
+        showPrint = show.replace ("&", 'and')
+        showPrint = showPrint.replace (' ', '-')
+        showPrint = showPrint.replace ('!', '')
+        showPrint = showPrint.replace ('?', '')
+        showPrint = showPrint.replace ("'", '')
+        showPrint = showPrint.replace ("Peg + Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
+        episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={showPrint}&type=episode')
+        if episodeList.status_code == 200 and 'items' in episodeList.json():
+            for episode in episodeList.json()['items']:
+                date_object = datetime.strptime(episode['encored_on'], '%Y-%m-%d').date()
+                if date_object >= datetime.now().date() and not datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date() >= datetime.now().date():
+                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']})")
+                    print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
+
 def searchFuture(showList):
-    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
-    print('All Upcoming Episodes Available on PBS Kids Player:')
+    print('All Upcoming New Episodes Available on PBS Kids Player:')
     for show in showList:
         showPrint = show.replace ("&", 'and')
         showPrint = showPrint.replace (' ', '-')
@@ -24,7 +40,6 @@ def searchFuture(showList):
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchStation():
-    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     start_date = datetime.now().date()
     episodes = []
     # Reads all dates between now and a year from now
@@ -146,7 +161,6 @@ def searchShow(showList):
     show = show.replace ("Peg + Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
     
     episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show}&type=episode').json()
-    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     IDList = []
     prodIDList = []
     videoList = []
@@ -199,24 +213,34 @@ def main(navIndex):
     for show in homeResponse['collections']['kids-programs-tier-3']['content']:
         showlist.append(show['title'])
         
+    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     match navIndex:
-        case 0: 
+        case 1: 
             i = 0
-            print('\nCurrently active shows on PBS Kids site:')
+            print('Currently active shows on PBS Kids site:')
             for show in showlist:
                 print(f'{i} - {show}')
                 i += 1
             searchShow(showlist)
-        case 1:
-            searchStation()
-            print("\nNote: Some episodes may not have descriptions on WHRO, please double-check listings via WGTE to find descriptions, as they are usually the samr between stations.")
         case 2:
+            searchStation()
+            print("\nNote: Some episodes may not have descriptions on WHRO, please double-check listings via WGTE to find descriptions, as they are usually the same between stations.")
+        case 3:
             searchFuture(showlist)
+        case 4:
+            searchFutureRot(showlist)
 
-os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
-print("Welcome to the PBS Producer Player navigator! This program is for learning purposes only, and should not be used to 'leak' unreleased materials (outside of episode synopsises/thumbnails). Please support the program(s) when they officially release via the PBS Kids Video App or through station broadcasts.")
-print("\n0 - Search producer list manually")
-print("1 - Search all upcoming episodes (Station, yields ~2 months ahead, read only)")
-print("2 - Search all upcoming episodes (Producer, yields ~1 month ahead, read only)")
-main(int(input("Input option here: ")))
-input("\nClick any button to finish the program:")
+while True:
+    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
+    print("Welcome to the PBS Producer Player navigator! This program is for learning purposes only, and should not be used to 'leak' unreleased materials (outside of episode synopsises/thumbnails). Please support the program(s) when they officially release via the PBS Kids Video App or through station broadcasts.")
+    print("\n1 - Search producer list manually")
+    print("2 - Search all upcoming episodes (Station, yields ~2 months ahead, read only)")
+    print("3 - Search all upcoming (new) episodes (Producer, yields ~1 month ahead, read only)")
+    print("4 - Search all upcoming (rotated) episodes (Producer, yields ~1 month ahead, read only)")
+    print("0 - Exit program")
+    navOption = int(input("Input option here: "))
+    if navOption == 0:
+        break
+    main(navOption)
+    navContinue = input('Continue program? (y/n): ')
+    if navContinue == 'n': break
