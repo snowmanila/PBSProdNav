@@ -6,7 +6,7 @@ import yt_dlp
 from datetime import datetime, timedelta
 
 def searchFutureRot(showList):
-    print('All Upcoming Rotated Episodes Available on PBS Kids Player:')
+    print('All Upcoming Rotated Episodes (From PBS Kids Player):')
     for show in showList:
         showPrint = show.replace ("&", 'and')
         showPrint = showPrint.replace (' ', '-')
@@ -19,11 +19,11 @@ def searchFutureRot(showList):
             for episode in episodeList.json()['items']:
                 date_object = datetime.strptime(episode['encored_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date() and not datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date() >= datetime.now().date():
-                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']})")
+                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchFuture(showList):
-    print('All Upcoming New Episodes Available on PBS Kids Player:')
+    print('All Upcoming New Episodes (From PBS Kids Player):')
     for show in showList:
         showPrint = show.replace ("&", 'and')
         showPrint = showPrint.replace (' ', '-')
@@ -36,13 +36,14 @@ def searchFuture(showList):
             for episode in episodeList.json()['items']:
                 date_object = datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date():
-                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Releases on: {episode['premiered_on']})")
+                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Releases on: {episode['premiered_on']}, expires on {str(episode['expirationdate'])[:10]})")
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchStation():
     start_date = datetime.now().date()
     episodes = []
     # Reads all dates between now and a year from now
+    print('All Upcoming New Episodes (From PBS WGTE/WHRO):')
     for i in range(0, 366):
         date = start_date + timedelta(days=i)
         url = f'https://schedule.whro.org/tv?date={date}&station=TVKIDS'
@@ -135,8 +136,6 @@ def searchStation():
                         elif episode not in episodes:
                             episodes.append(episode)
                             episodeNew = episode[:episode.find(' <span')]
-                            if newDate:
-                                newDate = False
                             programID = response2.split("data-program_id='")[1]
                             programID = programID.split("'")[0]
                             response3 = requests.get(f'https://schedule.whro.org/program?programid={programID}')
@@ -145,14 +144,21 @@ def searchStation():
                                 response3 = response3.split('</p></div>')[0]
                                 if not response3.__contains__("<span class='new'>NEW</span></h3></div>"):
                                     continue
-                                print(f'\nNew episodes for {date}:')
+                                if newDate:
+                                    print(f'\nNew episodes for {date}:')
+                                    newDate = False
                                 desc = response3.split('<div class="episodeDesc font-light"><p class="mt0">')[1]
                                 print(f'{show}: {episodeNew} - {desc}')
                             else:
+                                if newDate:
+                                    print(f'\nNew episodes for {date}:')
+                                    newDate = False
                                 print(f'{show}: {episodeNew} - {desc}')
 
 def searchShow(showList):
     show = showList[int(input('Select show index here: '))]
+    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
+    print(f'{show} Episode List:')
     show = show.replace ("&", 'and')
     show = show.replace (' ', '-')
     show = show.replace ('!', '')
@@ -165,14 +171,13 @@ def searchShow(showList):
     prodIDList = []
     videoList = []
     i = 0
-    print('Episode List:')
     for episode in episodeList['items']:
         IDList.append(episode['id'])
         prodIDList.append(episode['nola_episode'])
         videoList.append(episode['videos'][1]['url'])
-        print(f"{i} - {episode['title']}: {episode['description_long']}")
+        print(f"\n{i} - {episode['title']}: {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
         i += 1
-    index2 = int(input('Select show index here: '))
+    index2 = int(input('Select episode index here: '))
     
     ydl_opts = {}
     # Runs yt-dlp through each link, printing an error message if link is invalid,
@@ -225,6 +230,7 @@ def main(navIndex):
         case 2:
             searchStation()
             print("\nNote: Some episodes may not have descriptions on WHRO, please double-check listings via WGTE to find descriptions, as they are usually the same between stations.")
+            print("Additional Note: WGTE typically lists episodes ~two months ahead of time, but cannot be parsed as easily. Feel free to check WGTE's website to find episodes for the following month!")
         case 3:
             searchFuture(showlist)
         case 4:
@@ -234,7 +240,7 @@ while True:
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     print("Welcome to the PBS Producer Player navigator! This program is for learning purposes only, and should not be used to 'leak' unreleased materials (outside of episode synopsises/thumbnails). Please support the program(s) when they officially release via the PBS Kids Video App or through station broadcasts.")
     print("\n1 - Search producer list manually")
-    print("2 - Search all upcoming episodes (Station, yields ~2 months ahead, read only)")
+    print("2 - Search all upcoming episodes (Station, yields ~1 month ahead, read only)")
     print("3 - Search all upcoming (new) episodes (Producer, yields ~1 month ahead, read only)")
     print("4 - Search all upcoming (rotated) episodes (Producer, yields ~1 month ahead, read only)")
     print("0 - Exit program")
