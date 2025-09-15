@@ -13,7 +13,7 @@ def searchFutureRot(showList):
         showPrint = showPrint.replace ('!', '')
         showPrint = showPrint.replace ('?', '')
         showPrint = showPrint.replace ("'", '')
-        showPrint = showPrint.replace ("Peg + Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
+        showPrint = showPrint.replace ("Peg-+-Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
         episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={showPrint}&type=episode')
         if episodeList.status_code == 200 and 'items' in episodeList.json():
             for episode in episodeList.json()['items']:
@@ -30,7 +30,7 @@ def searchFuture(showList):
         showPrint = showPrint.replace ('!', '')
         showPrint = showPrint.replace ('?', '')
         showPrint = showPrint.replace ("'", '')
-        showPrint = showPrint.replace ("Peg + Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
+        showPrint = showPrint.replace ("Peg-+-Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
         episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={showPrint}&type=episode')
         if episodeList.status_code == 200 and 'items' in episodeList.json():
             for episode in episodeList.json()['items']:
@@ -159,22 +159,25 @@ def searchShow(showList):
     show = showList[int(input('Select show index here: '))]
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     print(f'{show} Episode List:')
-    show = show.replace ("&", 'and')
-    show = show.replace (' ', '-')
-    show = show.replace ('!', '')
-    show = show.replace ('?', '')
-    show = show.replace ("'", '')
-    show = show.replace ("Peg + Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
+    show = show.replace("&", 'and')
+    show = show.replace(' ', '-')
+    show = show.replace('!', '')
+    show = show.replace('?', '')
+    show = show.replace("'", '')
+    show = show.replace("Peg-+-Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
+    show = show.replace('Lyla-in-the-Loop', 'lyla-loop')
     
     episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show}&type=episode').json()
     IDList = []
     prodIDList = []
     videoList = []
+    episodeList2 = []
     i = 0
     for episode in episodeList['items']:
         IDList.append(episode['id'])
         prodIDList.append(episode['nola_episode'])
         videoList.append(episode['videos'][1]['url'])
+        episodeList2.append(episode['title'])
         print(f"\n{i} - {episode['title']}: {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
         i += 1
     index2 = int(input('Select episode index here: '))
@@ -191,21 +194,8 @@ def searchShow(showList):
             print(json.dumps(ydl.sanitize_info(info)))
             return
         except:
-            secretID = int(input('Video not found, input secret ID here): '))
-            while True:
-                print(id)
-                newURL = f'https://kids.pbs-video.pbs.org/videos//{show}/{id}/{secretID}/hd-16x9-mezzanine-1080p/{prodID}-ep-dvi-en-'
-                ydl_opts = {}
-                # Runs yt-dlp through each link, printing an error message if link is invalid,
-                # and prints info and breaks if valid link is found
-                try:
-                    info = ydl.extract_info(newURL, download=False)
-                    # ℹ️ ydl.sanitize_info makes the info json-serializable
-                    print(json.dumps(ydl.sanitize_info(info)))
-                    break
-                except:
-                    print("Error.")
-                id += 1   
+            print(f"Episode '{episodeList2[index2]}' not currently available.")
+            return
 
 def main(navIndex):
     homeResponse = requests.get('https://content.services.pbskids.org/v2/kidspbsorg/home/').json()
