@@ -5,188 +5,125 @@ import yt_dlp
 
 from datetime import datetime, timedelta
 
+# Written by snowmanila/manilamania (Updated: 9/22/25)
+
 def searchFutureRot(showList):
     print('All Upcoming Rotated Episodes (From PBS Kids Player):')
     for show in showList:
-        showPrint = show.replace ("&", 'and')
-        showPrint = showPrint.replace (' ', '-')
-        showPrint = showPrint.replace ('!', '')
-        showPrint = showPrint.replace ('?', '')
-        showPrint = showPrint.replace ("'", '')
-        showPrint = showPrint.replace ("Peg-+-Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
-        episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={showPrint}&type=episode')
+        episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=episode')
         if episodeList.status_code == 200 and 'items' in episodeList.json():
             for episode in episodeList.json()['items']:
                 date_object = datetime.strptime(episode['encored_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date() and not datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date() >= datetime.now().date():
-                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
+                    print(f"\n{show[0]}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchFuture(showList):
     print('All Upcoming New Episodes (From PBS Kids Player):')
     for show in showList:
-        showPrint = show.replace ("&", 'and')
-        showPrint = showPrint.replace (' ', '-')
-        showPrint = showPrint.replace ('!', '')
-        showPrint = showPrint.replace ('?', '')
-        showPrint = showPrint.replace ("'", '')
-        showPrint = showPrint.replace ("Peg-+-Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
-        episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={showPrint}&type=episode')
+        episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=episode')
         if episodeList.status_code == 200 and 'items' in episodeList.json():
             for episode in episodeList.json()['items']:
                 date_object = datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date():
-                    print(f"\n{show}: {episode['title']} - {episode['description_long']} (Releases on: {episode['premiered_on']}, expires on {str(episode['expirationdate'])[:10]})")
+                    print(f"\n{show[0]}: {episode['title']} - {episode['description_long']} (Releases on: {episode['premiered_on']}, expires on {str(episode['expirationdate'])[:10]})")
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchStation():
     start_date = datetime.now().date()
+    #start_date = datetime.strptime('2025-11-10', '%Y-%m-%d').date() # Individual date for debugging
     episodes = []
     # Reads all dates between now and a year from now
-    print('All Upcoming New Episodes (From PBS WGTE/WHRO):')
+    print('All Upcoming New Episodes (From PBS WGTE):')
     for i in range(0, 366):
         date = start_date + timedelta(days=i)
-        url = f'https://schedule.whro.org/tv?date={date}&station=TVKIDS'
-
-        # Send a GET request to fetch the webpage content (Returns None if page fails)
-        schedule = requests.get(url)
-        if (schedule.status_code) == 200:
+        print(f'\nNew episodes for {date}:')
+        payDate = (str(date)).split('-')
+        payload = {'year': str(payDate[0]), 'month': payDate[1], 'day': payDate[2], 'hours': '00-24', 'channels': '2'} # Data that is sent to WGTE to get the full PBS Kids schedule for the respective date
+        
+        # Send a POST request to fetch the webpage content for each day
+        schedule = requests.post('https://www.wgte.org/schedule-update', data=payload)
+        if schedule.status_code == 200:
             newDate = True
             response = schedule.text
-            # Exits program when no schedule is posted (date limit reached)
-            if response.__contains__('Selected date has no programs to display.'):
+            # Exits program when no schedule is posted
+            if not schedule.text.__contains__('<div class="schedule-programs">'):
                 break
             
             # Reads every episode detail on PBS WHRO's Kids schedule
-            while response.__contains__("<p class='mb0'>"):
-                response = response[response.find("<p class='mb0'>")+15:]
-                response2 = response[:response.find("<div class='col-md-1 pl2 airtime time'>")]
-                showtime = response2[:response2.find('</p>')] # Air time of show
-                # Show name
-                show = response2[response2.find("<a href='/program?programid=")+28:]
-                show = show[show.find("'>")+2:show.find("</a>")+1]
-                # Episode name
-                episode = 'episode-0'
-                if not response2.__contains__("<h3 class='episodeTitle my0'> "):
-                    episode = response2[response2.find("<h3 class='episodeTitle my0'>")+29:response2.find('</h3>')]
-                episode = episode.replace(' / ', '/')
-                show = show[:show.find("</a>")]
-                desc = 'No description available.'
-                if response2.__contains__("<p class='episodeDesc mb0 mt1 font-light'>"):
-                    desc = response2[response2.find("<p class='episodeDesc mb0 mt1 font-light'>")+42:response2.find("</p></div><div class='col-md-2'>")]
-                # If new episode is detected, crosscheck with PBS WGTE for potential mislabeling
-                # (some already aired episodes labeled as 'new' on WHRO)
-                if episode not in episodes and response2.__contains__("<span class='new'>"):
-                    crossShow = show.replace(' ', '-')
-                    crossShow = crossShow.replace("'", '')
-                    crossShow = crossShow.replace(' + ', '')
-                    crossShow = crossShow.replace(' & ', '-and-')
-                    crossShow = crossShow.replace(':-', '-')
-                    crossShow = crossShow.replace('!', '')
-                    crossEpisode = episode[:episode.find(' <span')].replace('episode-', 'episode-0')
-                    crossEpisode = crossEpisode.replace(' ', '-')
-                    crossEpisode = crossEpisode.replace('/', '-')
-                    crossEpisode = crossEpisode.replace("'", '')
-                    crossEpisode = crossEpisode.replace(',', '')
-                    crossDate = date.strftime("%m/%d/%Y").replace('/', '-')
-                    crossTime = showtime.replace(':', '-')
-                    if crossTime[1] == '-':
-                        crossTime = '0' + crossTime
-                    crossResponse = requests.get(f'https://www.wgte.org/schedules/program/kids/{crossShow}/{crossEpisode}/{crossDate}/{crossTime}-00')
-                    # If page exists on PBS WGTE
-                    if crossResponse.text.__contains__('Previous Episodes'):
-                        crossText = crossResponse.text[crossResponse.text.find('</td><td>')+9:]
-                        crossText = crossText[crossText.find('</td><td>')+9:]
-                        # If new episode hasn't aired (according to WGTE)
-                        if crossText[:crossText.find('</td>')] == crossDate.replace('-', '/'):
-                            # If first new episode entry on date
-                            if newDate:
-                                print(f'\nNew episodes for {date}:')
-                                newDate = False
-                            episodes.append(episode)
-                            episodeNew = episode[:episode.find(' <span ')]
-                            desc = crossResponse.text[crossResponse.text.find('</h2><p>')+8:crossResponse.text.find('</p><p class="channel">')]
-                            if crossResponse.text.__contains__(')<p>'):
-                                desc = crossResponse.text[crossResponse.text.find(')<p>')+4:crossResponse.text.find('</p><p class="channel">')]
-                            desc = desc.replace('&#039;', "'")
-                            desc = desc.replace('&quot;', "'")
-                            print(f'{show}: {episodeNew} - {desc}')
-                    else:
-                        crossTime = str(int(crossTime[:crossDate.find(':')-2])+12) + '-' + crossTime[crossDate.find(':')-1:]
-                        crossResponse = requests.get(f'https://www.wgte.org/schedules/program/kids/{crossShow}/{crossEpisode}/{crossDate}/{crossTime}-00')
-                        # If page exists on PBS WGTE
-                        if crossResponse.text.__contains__('Previous Episodes'):
-                            crossText = crossResponse.text[crossResponse.text.find('</td><td>')+9:]
-                            crossText = crossText[crossText.find('</td><td>')+9:]
-                            # If new episode hasn't aired (according to WGTE)
-                            if crossText[:crossText.find('</td>')] == crossDate.replace('-', '/'):
-                                # If first new episode entry on date
-                                if newDate:
-                                    print(f'\nNew episodes for {date}:')
-                                    newDate = False
-                                episodes.append(episode)
-                                episodeNew = episode[:episode.find(' <span ')]
-                                desc = crossResponse.text[crossResponse.text.find('</h2><p>')+8:crossResponse.text.find('</p><p class="channel">')]
-                                if crossResponse.text.__contains__(')<p>'):
-                                    desc = crossResponse.text[crossResponse.text.find(')<p>')+4:crossResponse.text.find('</p><p class="channel">')]
-                                desc = desc.replace('&#039;', "'")
-                                desc = desc.replace('&quot;', "'")
-                                print(f'{show}: {episodeNew} - {desc}')
-                        # If new episode but page does not exist on WGTE
-                        elif episode not in episodes:
-                            episodes.append(episode)
-                            episodeNew = episode[:episode.find(' <span')]
-                            programID = response2.split("data-program_id='")[1]
-                            programID = programID.split("'")[0]
-                            response3 = requests.get(f'https://schedule.whro.org/program?programid={programID}')
-                            if response3.status_code == 200:
-                                response3 = response3.text.split(episodeNew)[1]
-                                response3 = response3.split('</p></div>')[0]
-                                if not response3.__contains__("<span class='new'>NEW</span></h3></div>"):
-                                    continue
-                                if newDate:
-                                    print(f'\nNew episodes for {date}:')
-                                    newDate = False
-                                desc = response3.split('<div class="episodeDesc font-light"><p class="mt0">')[1]
-                                print(f'{show}: {episodeNew} - {desc}')
-                            else:
-                                if newDate:
-                                    print(f'\nNew episodes for {date}:')
-                                    newDate = False
-                                print(f'{show}: {episodeNew} - {desc}')
+            while response.__contains__('<div class="schedule-programs">'):
+                response = response[response.find('<div class="schedule-programs">')+41:]
+                showTitle = response[response.find('"> ')+3:]
+                showTitle = showTitle[:showTitle.find(':')]
+                episodeTitle = response[response.find('<br /> ')+7:]
+                episodeTitle = episodeTitle[:episodeTitle.find(' </a>')]
+                
+                response2 = response[:response.find('"')] # Episode page link
+                # If episode title is not listed directly
+                if showTitle.__contains__(f' </a></div>'):
+                    showTitle = showTitle[:showTitle.find(f' </a></div>')]
+                    episodeTitle = response2.split('/')[5]
+                    episodeTitle = episodeTitle.replace('-', ' ')
+                    episodeTitle = episodeTitle[0].capitalize() + episodeTitle[1:]
+                
+                # Skips episode if already checked
+                if [showTitle, episodeTitle] in episodes:
+                    continue
+                
+                # Gets data from episode page
+                response3 = requests.get(f'https://www.wgte.org{response2}') 
+                if response3.status_code == 200:
+                    description = response3.text
+                    description = description[description.find(f'{episodeTitle}</h2>')+5:]
+                    description = description[description.find('<p>')+3:]
+                    description = description[:description.find('</p><p ')]
+                    if description.__contains__('Receive info from WGTE') or description.__contains__('WGTE Passport'):
+                        description = "No description available."
+                    description = description.replace("&#039;", "'")
+                    description = description.replace("&quot;", "'")
+                    
+                    newDate = response3.text[response3.text.find('class="table-bordered">')+47:]
+                    newDate = newDate[newDate.find('</td><td>')+9:]
+                    newDate = newDate[:newDate.find('</td><td>')].replace('/', '-')
+                    newDate = datetime.strptime(newDate, "%m-%d-%Y")
+                    newDate = newDate.strftime("%Y-%m-%d")
+                    newDate = datetime.strptime(newDate, '%Y-%m-%d').date()
+                    if newDate >= date:
+                        if not [showTitle, episodeTitle] in episodes:
+                            showTitle2 = showTitle.replace("&#039;", "'")
+                            showTitle2 = showTitle2.replace("&quot;", "'")
+                            episodeTitle2 = episodeTitle.replace("&#039;", "'")
+                            episodeTitle2 = episodeTitle2.replace("&quot;", "'")
+                            print(f'- {showTitle2}: {episodeTitle2} - {description}')
+                    episodes.append([showTitle, episodeTitle])
 
 def searchShow(showList):
     show = showList[int(input('Select show index here: '))]
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
-    print(f'{show} Episode List:')
-    show = show.replace("&", 'and')
-    show = show.replace(' ', '-')
-    show = show.replace('!', '')
-    show = show.replace('?', '')
-    show = show.replace("'", '')
-    show = show.replace("Peg-+-Cat", 'Peg') # After this message thingy, we'll figure out why PBS has this show ID'd like this
-    show = show.replace('Lyla-in-the-Loop', 'lyla-loop')
+    print(f'{show[0]} Episode List:')
     
-    episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show}&type=episode').json()
+    episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=episode').json()
     IDList = []
     prodIDList = []
     videoList = []
     episodeList2 = []
     i = 0
+    # Reads through show's data and saves/prints data
     for episode in episodeList['items']:
         IDList.append(episode['id'])
         prodIDList.append(episode['nola_episode'])
         videoList.append(episode['videos'][1]['url'])
         episodeList2.append(episode['title'])
         print(f"\n{i} - {episode['title']}: {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
+        print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
         i += 1
     index2 = int(input('Select episode index here: '))
     
     ydl_opts = {}
-    # Runs yt-dlp through each link, printing an error message if link is invalid,
-    # and prints info and breaks if valid link is found
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     
+    # Runs yt-dlp through redirect link, and prints video info if valid link is found,
+    # or an error message if link is invalid.
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(videoList[index2], download=False)
@@ -197,16 +134,21 @@ def searchShow(showList):
             print(f"Episode '{episodeList2[index2]}' not currently available.")
             return
 
+# Retrieves JSON data from producer player, and performs an action based on the selected option
+# 1 - Lists all shows in site data, and allows for manual navigation and selection of show info
+# 2 - Searches all new episodes via PBS WGTE's data
+# 3 - Searches all new episodes in producer player's data
+# 4 - Searches all upcoming 'rotated' episodes in producer player's data
 def main(navIndex):
     homeResponse = requests.get('https://content.services.pbskids.org/v2/kidspbsorg/home/').json()
     
     showlist = []
     for show in homeResponse['collections']['kids-programs-tier-1']['content']:
-        showlist.append(show['title'])
+        showlist.append([show['title'], show['slug']])
     for show in homeResponse['collections']['kids-programs-tier-2']['content']:
-        showlist.append(show['title'])
+        showlist.append([show['title'], show['slug']])
     for show in homeResponse['collections']['kids-programs-tier-3']['content']:
-        showlist.append(show['title'])
+        showlist.append([show['title'], show['slug']])
         
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     match navIndex:
@@ -214,13 +156,11 @@ def main(navIndex):
             i = 0
             print('Currently active shows on PBS Kids site:')
             for show in showlist:
-                print(f'{i} - {show}')
+                print(f'{i} - {show[0]}')
                 i += 1
             searchShow(showlist)
         case 2:
             searchStation()
-            print("\nNote: Some episodes may not have descriptions on WHRO, please double-check listings via WGTE to find descriptions, as they are usually the same between stations.")
-            print("Additional Note: WGTE typically lists episodes ~two months ahead of time, but cannot be parsed as easily. Feel free to check WGTE's website to find episodes for the following month!")
         case 3:
             searchFuture(showlist)
         case 4:
@@ -230,13 +170,17 @@ while True:
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
     print("Welcome to the PBS Producer Player navigator! This program is for learning purposes only, and should not be used to 'leak' unreleased materials (outside of episode synopsises/thumbnails). Please support the program(s) when they officially release via the PBS Kids Video App or through station broadcasts.")
     print("\n1 - Search producer list manually")
-    print("2 - Search all upcoming episodes (Station, yields ~1 month ahead, read only)")
+    print("2 - Search all upcoming episodes (WGTE, yields ~2 months ahead, read only)")
     print("3 - Search all upcoming (new) episodes (Producer, yields ~1 month ahead, read only)")
     print("4 - Search all upcoming (rotated) episodes (Producer, yields ~1 month ahead, read only)")
     print("0 - Exit program")
+    
+    # Option selection, ends program if 0 is entered
     navOption = int(input("Input option here: "))
     if navOption == 0:
         break
     main(navOption)
+    
+    # Rerun selection, ends program if 'n' is entered
     navContinue = input('Continue program? (y/n): ')
     if navContinue == 'n': break
