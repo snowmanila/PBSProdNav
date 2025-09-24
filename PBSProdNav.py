@@ -7,6 +7,29 @@ from datetime import datetime, timedelta
 
 # Written by snowmanila/manilamania (Updated: 9/22/25)
 
+def searchExpired(showList):
+    print('All Expired Episodes (From PBS Kids Player):')
+    for show in showList:
+        episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=episode')
+        if episodeList.status_code == 200 and 'items' in episodeList.json():
+            for episode in episodeList.json()['items']:
+                if episode['expirationdate']:
+                    date_object = datetime.strptime(episode['expirationdate'][:-10], '%Y-%m-%d').date()
+                    if not date_object >= datetime.now().date():
+                        print(f"\n{show[0]}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expired on {str(episode['expirationdate'])[:10]})")
+                        print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
+
+def searchFutureClip(showList):
+    print('All Upcoming New Clips (From PBS Kids Player):')
+    for show in showList:
+        clipList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=clip')
+        if clipList.status_code == 200 and 'items' in clipList.json():
+            for clip in clipList.json()['items']:
+                date_object = datetime.strptime(clip['encored_on'], '%Y-%m-%d').date()
+                if date_object >= datetime.now().date() and datetime.strptime(clip['premiered_on'], '%Y-%m-%d').date() >= datetime.now().date():
+                    print(f"\n{show[0]}: {clip['title']} - {clip['description_long']} (Releases on: {clip['premiered_on']}, expires on {str(clip['expirationdate'])[:10]})")
+                    print(f"Thumbnail: {clip['images']['kids-mezzannine-16x9']['url']}")
+
 def searchFutureRot(showList):
     print('All Upcoming Rotated Episodes (From PBS Kids Player):')
     for show in showList:
@@ -165,6 +188,10 @@ def main(navIndex):
             searchFuture(showlist)
         case 4:
             searchFutureRot(showlist)
+        case 5:
+            searchFutureClip(showlist)
+        case 6:
+            searchExpired(showlist)
 
 while True:
     os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
@@ -173,6 +200,8 @@ while True:
     print("2 - Search all upcoming episodes (WGTE, yields ~2 months ahead, read only)")
     print("3 - Search all upcoming (new) episodes (Producer, yields ~1 month ahead, read only)")
     print("4 - Search all upcoming (rotated) episodes (Producer, yields ~1 month ahead, read only)")
+    print("5 - Search all upcoming (new) clips (Producer, yields ~1 month ahead, read only)")
+    print("6 - Search all expired episodes (Producer, yields ~1 month ahead, read only)")
     print("0 - Exit program")
     
     # Option selection, ends program if 0 is entered
