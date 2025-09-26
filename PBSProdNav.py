@@ -16,7 +16,7 @@ def searchExpired(showList):
                 if episode['expirationdate']:
                     date_object = datetime.strptime(episode['expirationdate'][:-10], '%Y-%m-%d').date()
                     if not date_object >= datetime.now().date():
-                        print(f"\n{show[0]}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expired on {str(episode['expirationdate'])[:10]})")
+                        print(f"\n{show[0]}: {episode['title']} ({episode['nola_episode']}) - {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expired on {str(episode['expirationdate'])[:10]})")
                         print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchFutureClip(showList):
@@ -27,7 +27,7 @@ def searchFutureClip(showList):
             for clip in clipList.json()['items']:
                 date_object = datetime.strptime(clip['encored_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date() and datetime.strptime(clip['premiered_on'], '%Y-%m-%d').date() >= datetime.now().date():
-                    print(f"\n{show[0]}: {clip['title']} - {clip['description_long']} (Releases on: {clip['premiered_on']}, expires on {str(clip['expirationdate'])[:10]})")
+                    print(f"\n{show[0]}: {clip['title']} ({clip['nola_episode']}) - {clip['description_long']} (Releases on: {clip['premiered_on']}, expires on {str(clip['expirationdate'])[:10]})")
                     print(f"Thumbnail: {clip['images']['kids-mezzannine-16x9']['url']}")
 
 def searchFutureRot(showList):
@@ -38,7 +38,7 @@ def searchFutureRot(showList):
             for episode in episodeList.json()['items']:
                 date_object = datetime.strptime(episode['encored_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date() and not datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date() >= datetime.now().date():
-                    print(f"\n{show[0]}: {episode['title']} - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
+                    print(f"\n{show[0]}: {episode['title']} ({episode['nola_episode']}) - {episode['description_long']} (Released on: {episode['premiered_on']}, encores on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchFuture(showList):
@@ -49,7 +49,7 @@ def searchFuture(showList):
             for episode in episodeList.json()['items']:
                 date_object = datetime.strptime(episode['premiered_on'], '%Y-%m-%d').date()
                 if date_object >= datetime.now().date():
-                    print(f"\n{show[0]}: {episode['title']} - {episode['description_long']} (Releases on: {episode['premiered_on']}, expires on {str(episode['expirationdate'])[:10]})")
+                    print(f"\n{show[0]}: {episode['title']} ({episode['nola_episode']}) - {episode['description_long']} (Releases on: {episode['premiered_on']}, expires on {str(episode['expirationdate'])[:10]})")
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchStation():
@@ -122,40 +122,79 @@ def searchStation():
 
 def searchShow(showList):
     show = showList[int(input('Select show index here: '))]
-    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
-    print(f'{show[0]} Episode List:')
-    
-    episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=episode').json()
-    IDList = []
-    prodIDList = []
-    videoList = []
-    episodeList2 = []
-    i = 0
-    # Reads through show's data and saves/prints data
-    for episode in episodeList['items']:
-        IDList.append(episode['id'])
-        prodIDList.append(episode['nola_episode'])
-        videoList.append(episode['videos'][1]['url'])
-        episodeList2.append(episode['title'])
-        print(f"\n{i} - {episode['title']}: {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
-        print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
-        i += 1
-    index2 = int(input('Select episode index here: '))
-    
-    ydl_opts = {}
-    os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
-    
-    # Runs yt-dlp through redirect link, and prints video info if valid link is found,
-    # or an error message if link is invalid.
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(videoList[index2], download=False)
-            # ℹ️ ydl.sanitize_info makes the info json-serializable
-            print(json.dumps(ydl.sanitize_info(info)))
-            return
-        except:
-            print(f"Episode '{episodeList2[index2]}' not currently available.")
-            return
+    print(f'\n1 - Search {show[0]} episodes')
+    print(f'2 - Search {show[0]} clips')
+    match int(input('Select show material here: ')):
+        case 1:
+            os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
+            print(f'{show[0]} Episode List:')
+            
+            episodeList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=episode').json()
+            IDList = []
+            prodIDList = []
+            videoList = []
+            episodeList2 = []
+            i = 0
+            # Reads through show's data and saves/prints data
+            for episode in episodeList['items']:
+                IDList.append(episode['id'])
+                prodIDList.append(episode['nola_episode'])
+                videoList.append(episode['videos'][1]['url'])
+                episodeList2.append(episode['title'])
+                print(f"\n{i} - {episode['title']}: {episode['description_long']} (Released on: {episode['premiered_on']}, encored on: {episode['encored_on']}, expires on {str(episode['expirationdate'])[:10]})")
+                print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
+                i += 1
+            index2 = int(input('Select episode index here: '))
+            
+            ydl_opts = {}
+            os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
+            
+            # Runs yt-dlp through redirect link, and prints video info if valid link is found,
+            # or an error message if link is invalid.
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                try:
+                    info = ydl.extract_info(videoList[index2], download=False)
+                    # ℹ️ ydl.sanitize_info makes the info json-serializable
+                    print(json.dumps(ydl.sanitize_info(info)))
+                    return
+                except:
+                    print(f"Episode '{episodeList2[index2]}' not currently available.")
+                    return
+        case 2:
+            os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
+            print(f'{show[0]} Clip List:')
+            
+            clipList = requests.get(f'https://producerplayer.services.pbskids.org/show-list/?shows={show[1]}&type=clip').json()
+            IDList = []
+            prodIDList = []
+            videoList = []
+            clipList2 = []
+            i = 0
+            # Reads through show's data and saves/prints data
+            for clip in clipList['items']:
+                IDList.append(clip['id'])
+                prodIDList.append(clip['nola_episode'])
+                videoList.append(clip['videos'][1]['url'])
+                clipList2.append(clip['title'])
+                print(f"\n{i} - {clip['title']}: {clip['description_long']} (Released on: {clip['premiered_on']}, encored on: {clip['encored_on']}, expires on {str(clip['expirationdate'])[:10]})")
+                print(f"Thumbnail: {clip['images']['kids-mezzannine-16x9']['url']}")
+                i += 1
+            index2 = int(input('Select clip index here: '))
+            
+            ydl_opts = {}
+            os.system('cls') # Clears terminal; replace with os.system('clear') if on Unix/Linux/Mac
+            
+            # Runs yt-dlp through redirect link, and prints video info if valid link is found,
+            # or an error message if link is invalid.
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                try:
+                    info = ydl.extract_info(videoList[index2], download=False)
+                    # ℹ️ ydl.sanitize_info makes the info json-serializable
+                    print(json.dumps(ydl.sanitize_info(info)))
+                    return
+                except:
+                    print(f"Episode '{clipList2[index2]}' not currently available.")
+                    return
 
 # Retrieves JSON data from producer player, and performs an action based on the selected option
 # 1 - Lists all shows in site data, and allows for manual navigation and selection of show info
