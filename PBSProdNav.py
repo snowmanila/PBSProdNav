@@ -53,8 +53,8 @@ def searchFuture(showList):
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchStation():
-    #start_date = datetime.now().date()
-    start_date = datetime.strptime('2025-12-01', '%Y-%m-%d').date() # Individual date for debugging
+    start_date = datetime.now().date()
+    #start_date = datetime.strptime('2025-12-01', '%Y-%m-%d').date() # Individual date for debugging
     episodes = []
     hours = '00-24'
     channel = '2'
