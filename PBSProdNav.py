@@ -3,7 +3,7 @@ import requests
 import os
 import yt_dlp
 
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 # Written by snowmanila/manilamania (Updated: 9/22/25)
 
@@ -53,16 +53,18 @@ def searchFuture(showList):
                     print(f"Thumbnail: {episode['images']['kids-mezzannine-16x9']['url']}")
 
 def searchStation():
-    start_date = datetime.now().date()
-    #start_date = datetime.strptime('2025-11-10', '%Y-%m-%d').date() # Individual date for debugging
+    #start_date = datetime.now().date()
+    start_date = datetime.strptime('2025-12-01', '%Y-%m-%d').date() # Individual date for debugging
     episodes = []
+    hours = '00-24'
+    channel = '2'
     # Reads all dates between now and a year from now
     print('All Upcoming New Episodes (From PBS WGTE):')
     for i in range(0, 366):
         date = start_date + timedelta(days=i)
         print(f'\nNew episodes for {date}:')
         payDate = (str(date)).split('-')
-        payload = {'year': str(payDate[0]), 'month': payDate[1], 'day': payDate[2], 'hours': '00-24', 'channels': '2'} # Data that is sent to WGTE to get the full PBS Kids schedule for the respective date
+        payload = {'year': str(payDate[0]), 'month': payDate[1], 'day': payDate[2], 'hours': hours, 'channels': channel} # Data that is sent to WGTE to get the full PBS Kids schedule for the respective date
         
         # Send a POST request to fetch the webpage content for each day
         schedule = requests.post('https://www.wgte.org/schedule-update', data=payload)
@@ -71,7 +73,12 @@ def searchStation():
             response = schedule.text
             # Exits program when no schedule is posted
             if not schedule.text.__contains__('<div class="schedule-programs">'):
-                break
+                if channel != '2':
+                    break
+                channel = '1'
+                payload = {'year': str(payDate[0]), 'month': payDate[1], 'day': payDate[2], 'hours': '06-13', 'channels': channel}
+                schedule = requests.post('https://www.wgte.org/schedule-update', data=payload)
+                response = schedule.text
             
             # Reads every episode detail on PBS WHRO's Kids schedule
             while response.__contains__('<div class="schedule-programs">'):
@@ -93,9 +100,13 @@ def searchStation():
                 if [showTitle, episodeTitle] in episodes:
                     continue
                 
+                timeCheck = datetime.strptime(response2.split('/')[7], "%H-%M-%S").time()
+                if channel == '1' and timeCheck >= time(13, 00):
+                    continue
+                
                 # Gets data from episode page
                 response3 = requests.get(f'https://www.wgte.org{response2}') 
-                if response3.status_code == 200:
+                if response3.status_code == 200 and (channel == '2' or timeCheck >= time(6, 00)):
                     description = response3.text
                     description = description[description.find(f'{episodeTitle}</h2>')+5:]
                     description = description[description.find('<p>')+3:]
@@ -115,8 +126,10 @@ def searchStation():
                         if not [showTitle, episodeTitle] in episodes:
                             showTitle2 = showTitle.replace("&#039;", "'")
                             showTitle2 = showTitle2.replace("&quot;", "'")
+                            showTitle2 = showTitle2.replace("&amp;", "&")
                             episodeTitle2 = episodeTitle.replace("&#039;", "'")
                             episodeTitle2 = episodeTitle2.replace("&quot;", "'")
+                            episodeTitle2 = episodeTitle2.replace("&amp;", "&")
                             print(f'- {showTitle2}: {episodeTitle2} - {description}')
                     episodes.append([showTitle, episodeTitle])
 
